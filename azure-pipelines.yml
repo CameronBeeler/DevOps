@@ -1,0 +1,350 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+      - main
+      - feature/*
+
+variables:
+- group: topSecret
+- template: variables.yml
+- name: SourceBranch
+  ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+    value: ${{ variables['System.PullRequest.SourceBranch'] }}
+  ${{ else }}:
+    value: ${{ variables['Build.SourceBranchName'] }}
+
+pool:
+  name: "Azure Pipelines"
+  vmImage:  macOS-12 
+
+stages: 
+- stage: terraformBuild
+  displayName: Build Terraform Stage
+  dependsOn: []
+
+  jobs:
+  - job: BuildTerraform
+    displayName: "Build Terraform"
+    steps:
+    - task: Bash@3
+      displayName: 'Agent Build Config'
+      inputs:
+        targetType: 'inline'
+        script: |
+          set -exo
+
+          brew tap hashicorp/tap
+
+          if command -v aws > /dev/null 2>&1; then
+            echo "AWS is installed"
+          else
+            echo "AWS is not installed. Installing..."
+            brew install awscli
+          fi
+
+          if command -v terraform > /dev/null 2>&1; then
+            echo "Terraform is installed"
+          else
+            echo "Terraform is not installed. Installing..."
+            brew install hashicorp/tap/terraform
+          fi
+
+          echo '{ "credentials": { "app.terraform.io": { "token": "${TF_TOKEN_app_terraform_io}" } } }' > credentials.tfrc.json
+
+          echo `cat credentials.tfrc.json`
+
+          echo "Terraform version"
+          terraform version
+
+          echo "AWS CLI version"
+          aws --version
+
+          echo "Terraform Cloud Token"
+          echo $(TFC)
+
+    - publish: $(Build.SourcesDirectory)
+      displayName: 'Publish the terraform agent configuration'
+      artifact: terraformConfig
+
+- stage: terraformDeploy
+  displayName: Terraform Deploy Stage
+  dependsOn: [terraformBuild]
+  condition: succeeded('terraformBuild')
+
+  jobs:
+  - deployment: DeployAndValidate
+    displayName: "Deploy Terraform"
+    environment: "build"  # This triggers environment checks and approvals
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download the terraform configuration for the agent'
+            inputs:
+              artifactName: terraformConfig
+              targetPath: $(Build.SourcesDirectory)/
+
+          - task: Bash@3
+            displayName: Agent Build Config
+            env:
+              AWS_ACCESS_KEY_ID: $(aws-access-key-id)
+              AWS_SECRET_ACCESS_KEY: $(aws-secret-access-key)
+              TF_TOKEN_app_terraform_io: $(TFC)
+            inputs:
+              targetType: 'inline'
+              script: |
+                set -exo
+
+                echo `aws s3 ls`
+
+                brew tap hashicorp/tap
+                brew install hashicorp/tap/terraform
+
+                echo '{ "credentials": { "app.terraform.io": { "token": "${TF_TOKEN_app_terraform_io}" } } }' > credentials.tfrc.json
+
+                echo ${TF_TOKEN_app_terraform_io}
+                echo `cat credentials.tfrc.json`
+
+          - task: Bash@3
+            displayName: Terraform CLI BUILD
+            env:
+              AWS_ACCESS_KEY_ID: $(aws-access-key-id)
+              AWS_SECRET_ACCESS_KEY: $(aws-secret-access-key)
+              TF_TOKEN_app_terraform_io: $(TFC)
+              TF_CLI_CONFIG_FILE: "$(Build.SourcesDirectory)/credentials.tfrc.json"
+            inputs:
+              targetType: 'inline'
+              script: |
+                set -exo
+
+                cd terraform
+
+                export TF_CLI_CONFIG_FILE
+
+                echo `aws s3 ls`
+
+                # Verify Terraform installation
+                which terraform
+                terraform version
+
+                # Initialize Terraform
+                terraform init
+                terraform plan
+                terraform apply -auto-approve
+
+- stage: terraformDestroy
+  displayName: Terraform Destroy Stage
+  dependsOn: ['terraformDeploy']
+  condition: succeeded('terraformDeploy')
+
+  jobs:
+   - deployment: DestroyTerraform
+     displayName: "Destroy Terraform"
+     environment: "destroy"  # This triggers environment checks and approvals
+     strategy:
+       runOnce:
+         deploy:
+           steps:
+            - task: DownloadPipelineArtifact@2
+              displayName: 'Download the terraform configuration for the agent'
+              inputs:
+                artifactName: terraformConfig
+                targetPath: $(Build.SourcesDirectory)/
+            - task: Bash@3
+              displayName: Agent Build Config
+              env:
+                AWS_ACCESS_KEY_ID: $(aws-access-key-id)
+                AWS_SECRET_ACCESS_KEY: $(aws-secret-access-key)
+                TF_TOKEN_app_terraform_io: $(TFC)
+              inputs:
+                targetType: 'inline'
+                script: |
+                  set -exo
+
+                  [[ -f $(Build.SourcesDirectory)/credentials.tfrc.json ]] || { echo "Credentials file not found!"; exit 1; }
+
+                  if command -v terraform > /dev/null 2>&1; then
+                    echo "Terraform is installed"
+                  else
+                    echo "Terraform is not installed. Installing..."
+                    brew tap hashicorp/tap
+                    brew install hashicorp/tap/terraform
+                  fi
+
+                  terraform version
+
+                  cd terraform
+
+                  # Destroy Terraform
+                  terraform init
+                  terraform destroy -auto-approve
+
+                  echo "LISTING THE TERRAFORM STATE"
+                  terraform state list
+
+- stage: explorePublishFeature
+  displayName: ExploringPublishArtifact
+  condition: false
+  dependsOn: []
+
+  jobs:
+
+    - job: A
+      displayName: FirstJobDN
+
+      steps:
+      - task: Bash@3
+        name: bashTask
+        displayName: bashTaskDN
+        inputs:
+          workingDirectory: $(Build.SourcesDirectory)
+          targetType: 'inline'
+          script: |
+            echo "the repo branch name is = $(Build.sourceBranch)"
+            echo "the repo branch name is = ${BUILD_SOURCESDIRECTORY} - unix env global"
+            echo "The pipeline working directory is $(Build.SourcesDirectory)"
+            echo "test branch PR into main"
+            bash ./bash/reference.sh
+            echo "The explore_out file has this content -> $(cat ${BUILD_SOURCESDIRECTORY}/reference/explore_out.txt)"
+            echo "The branch_name file has this content -> $(cat ${BUILD_SOURCESDIRECTORY}/reference/branch_name.txt)"
+            export branch_name=$(awk 'NR==1' ${BUILD_SOURCESDIRECTORY}/reference/branch_name.txt)
+            echo "<$branch_name> is the name of the repo branch that deployed this run"
+ 
+      - publish: $(Build.SourcesDirectory)/reference
+        displayName: 'Publish the output directory for reference texts'
+        artifact: reference
+
+        # - bash: |
+            # QA_BUILDNBR=$(awk 'NR==1' $(Pipeline.Workspace)/buildid/mobileappbuildid.txt)
+  
+      - task: Bash@3
+        name: bashTasknbr2
+        displayName: bashTask1-2DN
+        inputs:
+          workingDirectory: $(Build.SourcesDirectory)
+          targetType: 'inline'
+          script: |
+            echo "The pipeline working directory is $(Build.SourcesDirectory)"
+            echo "This is the explore_out data -> $(cat ${BUILD_SOURCESDIRECTORY}/reference/explore_out.txt)"
+  
+      - publish: $(Build.SourcesDirectory)/reference/explore_out.txt
+        displayName: 'Publish the explore output for testing'
+        artifact: explore # Always writes to the Pipeline.Workspace
+  
+    - job: B
+      displayName: SecondJobDN
+      dependsOn: A
+      steps:
+
+      - download: current
+        displayName: 'Download the explore output for testing'
+        artifact: explore
+
+      - download: current
+        displayName: 'Download the output reference files'
+        artifact: reference # is located in the $(Pipeline.Workspace) directory by default
+
+      - task: Bash@3
+        name: bashTask2
+        displayName: secondTask2DN
+        inputs:
+          targetType: 'inline'
+          script: |
+            echo "Hello World"
+            cat ${PIPELINE_WORKSPACE}/explore/explore_out.txt
+            echo "$(find ${PIPELINE_WORKSPACE})"
+
+            export branch_name=$(awk 'NR==1' ${PIPELINE_WORKSPACE}/reference/branch_name.txt)
+            echo "<$branch_name> is the name of the repo branch that deployed this run"
+
+    - job: CAMERON
+      dependsOn: B
+      displayName: Collect Screenshots
+
+      steps:
+
+      - task: Bash@3
+        name: downloadpngs
+        displayName: Download png files
+        inputs: 
+          targetType: 'inline'
+          workingDirectory: $(Build.SourcesDirectory)
+          script: |
+            mkdir -p $(Build.SourcesDirectory)/screenshots_output_$(System.JobId)
+            echo "$(find $(Build.SourcesDirectory))"
+
+            if [ $(find "${BUILD_SOURCESDIRECTORY}/content" -type f -name "*.png" | wc -l) -gt 0 ]; then
+              echo "YES, WE FOUND SOME PICS"
+              find "${BUILD_SOURCESDIRECTORY}/content" -type f -name "*.png" | xargs -I {} cp {} "${BUILD_SOURCESDIRECTORY}/screenshots_output_$(System.JobId)/"
+            else
+              echo "THE DIRECTORY IS HOARKED, WE FOUND NOTHING"
+              echo "the directory is ${PWD}"
+              echo "The target directory is the Build SourcesDirectory <$(Build.SourcesDirectory)>"
+              echo "the files in pipeline are ..."
+              echo ls $(Build.SourcesDirectory)
+            fi
+
+            echo the System variables are...
+            echo "<$(System.JobId)> is the System.JobId"
+            echo "<$(System.JobName)> is the System.JobName"
+            echo "<$(System.JobDisplayName)> is the System.JobDisplayName"
+            echo "<$(System.StageName)> is the System.StageName"
+            echo "<$(System.StageDisplayName)> is the System.StageDisplayName"
+
+      - publish: $(Build.SourcesDirectory)/screenshots_output_$(System.JobId)
+        artifact: screenshots_$(System.JobId)
+
+- stage: DownloadArtifactStage
+  condition: false
+  displayName: second Stage Display Name
+  dependsOn: []
+
+  jobs:
+
+    - job: DownloadArtifactJob
+      displayName: ExploreDownloadArtifact
+
+      steps:
+
+      - download: current
+        displayName: 'Download the explore output for testing'
+        artifact: explore
+
+      - task: Bash@3
+        name: bashTask
+        displayName: ExploreDownloadArtifactScript
+        inputs:
+          workingDirectory: $(Build.SourcesDirectory)
+          targetType: 'inline'
+          script: |
+            echo $(Build.sourceBranch)
+            echo "The pipeline working directory is $(Build.SourcesDirectory)"
+            echo "and the final print of the explore out text file follows vvvv"
+            cat $(Pipeline.Workspace)/explore/explore_out.txt
+            echo "THE END"
+
+- stage: security
+  condition: false
+  dependsOn: []
+
+  jobs:
+  # condition: false
+    - job:
+
+      steps:
+      - script: |
+          export CAMERON=$(Cameron)
+          export KIM=$(Kim)
+          source ./bash/build.sh
+
+      - script: |
+          echo "$Cameron is a secret"
+          echo "$Kim is a secret"
+          echo $TRUE
+          echo $FALSE
