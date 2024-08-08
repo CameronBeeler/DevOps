@@ -1,10 +1,10 @@
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
-#   source_dir  = "../src/lambda-process-s3-objects"
   source_file = "../src/lambda-process-s3-objects/lambda-process-s3-objects.py"
-#   source_file = "../src/lambda-process-s3-objects/*"
   output_path = "${path.module}/lambda-process-s3-objects.zip"
+#   source_file = "../src/lambda-process-s3-objects/*"
+#   source_dir  = "../src/lambda-process-s3-objects"
 }
 
 module "S3_trigger_lambda_process_objects" {
