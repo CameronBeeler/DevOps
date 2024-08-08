@@ -11,6 +11,9 @@ def lambda_handler(event, context):
     # Extract the bucket name and object key from the event
     bucket_name = event['Records'][0]['s3']['bucket']['name']
     ingested_key = event['Records'][0]['s3']['object']['key']
+    
+    # Log the event information
+    logger.info(f"Received event: {event}")
 
     # Log the trigger event
     logger.info(f"Ingested object: {ingested_key} in bucket: {bucket_name}")

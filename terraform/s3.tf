@@ -59,12 +59,8 @@ resource "aws_s3_bucket_policy" "attach_s3_bucket_policy" {
 }
 
 
-### Create an S3 bucket
-### use cloudposse/s3-bucket/aws module
 ### https://registry.terraform.io/modules/cloudposse/s3-bucket/aws/latest
-### create a ingestion key
-### create a processed key
-### create a trigger for a lambda function to process the files in the ingestion key
+
 module "objects_processing_bucket" {
   source                  = "cloudposse/s3-bucket/aws"
   version                 = "4.2.0"
