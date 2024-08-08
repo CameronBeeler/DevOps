@@ -59,8 +59,8 @@ data "aws_iam_policy_document" "lambda_execution_policy_document" {
       "s3:CopyObject"
     ]
     resources = [
-      module.S3_trigger_lambda_process_objects.bucket_arn,
-      "${module.S3_trigger_lambda_process_objects.bucket_arn}/*"
+      module.objects_processing_bucket.bucket_arn,
+      "${module.objects_processing_bucket.bucket_arn}/*"
     ]
   }
   statement {
@@ -128,6 +128,8 @@ resource "aws_iam_policy" "lambda_execution_policy" {
   name        = lambda_execution_policy_document
   description = "enable Lambda to access and remove queue items from the SQS"
   policy      = data.aws_iam_policy_document.lambda_execution_policy_document
+
+  depends_on = [ module.objects_processing_bucket ]
 }
 
 resource "aws_lambda_permission" "lambda_process_s3_objects" {
