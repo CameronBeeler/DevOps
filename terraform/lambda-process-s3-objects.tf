@@ -20,7 +20,7 @@ module "S3_trigger_lambda_process_objects" {
   cloudwatch_logs_retention_in_days  = 30
 
   custom_iam_policy_arns = [
-    "arn:aws:iam::${var.aws_account_id}:policy/lambda_kms_decrypt"
+    "arn:aws:iam::${local.aws_account_id}:policy/lambda_kms_decrypt"
   ]
 
   layers = []
@@ -71,7 +71,7 @@ data "aws_iam_policy_document" "lambda_execution_policy_document" {
       "logs:PutLogEvents"
     ]
     resources = [
-      "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/lambda/*"
+      "arn:aws:logs:${var.aws_region}:${local.aws_account_id}:log-group:/aws/lambda/*"
     ]
   }
 
@@ -86,7 +86,7 @@ data "aws_iam_policy_document" "lambda_execution_policy_document" {
       "sqs:ListQueueTags"
     ]
     resources = [
-      "arn:aws:sqs:${var.aws_region}:${var.aws_account_id}:*"
+      "arn:aws:sqs:${var.aws_region}:${local.aws_account_id}:*"
     ]
   }
 
@@ -100,7 +100,7 @@ data "aws_iam_policy_document" "lambda_execution_policy_document" {
       "sns:ListSubscriptionsByTopic"
     ]
     resources = [
-      "arn:aws:sns:${var.aws_region}:${var.aws_account_id}:*"
+      "arn:aws:sns:${var.aws_region}:${local.aws_account_id}:*"
     ]
   }
 

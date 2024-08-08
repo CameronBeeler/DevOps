@@ -1,8 +1,3 @@
-variable "aws_account_id" {
-  description = "The AWS account ID"
-  type        = string
-  default =  data.aws_caller_identity.current.account_id
-}
 variable "aws_region" {
   description = "The AWS region to deploy to"
   type        = string
