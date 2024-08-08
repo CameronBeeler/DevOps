@@ -20,7 +20,8 @@ module "S3_trigger_lambda_process_objects" {
   cloudwatch_logs_retention_in_days  = 30
 
   custom_iam_policy_arns = [
-    "arn:aws:iam::${local.aws_account_id}:policy/lambda_kms_decrypt"
+    "arn:aws:iam::${local.aws_account_id}:policy/lambda_kms_decrypt",
+    "arn:aws:iam::${local.aws_account_id}:policy/lambda_execution_policy_document"
   ]
 
   layers = []
@@ -33,7 +34,7 @@ module "S3_trigger_lambda_process_objects" {
 
   context = module.this.context
 
-  depends_on = [ aws_iam_policy.sqs_cns_ingestion_messages_read ]
+  depends_on = [ aws_iam_policy.lambda_execution_policy ]
 }
 
 data "aws_iam_policy_document" "lambda_execution_policy_document" {
@@ -123,7 +124,7 @@ data "aws_iam_policy_document" "lambda_execution_policy_document" {
 }
 
 # make lambda name
-resource "aws_iam_policy" "sqs_cns_ingestion_messages_read" {
+resource "aws_iam_policy" "lambda_execution_policy" {
   name        = lambda_execution_policy_document
   description = "enable Lambda to access and remove queue items from the SQS"
   policy      = data.aws_iam_policy_document.lambda_execution_policy_document
@@ -135,4 +136,6 @@ resource "aws_lambda_permission" "lambda_process_s3_objects" {
   function_name = module.lambda_process_s3_objects.function_name
   principal     = "s3.amazonaws.com"
   source_arn    = module.objects_processing_bucket.bucket_arn
+
+  depends_on = [ module.S3_trigger_lambda_process_objects, module.objects_processing_bucket ]
 }

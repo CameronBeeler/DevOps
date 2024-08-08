@@ -87,12 +87,16 @@ resource "aws_s3_object" "creating_ingestion_key" {
   bucket = module.objects_processing_bucket.bucket_id
   key    = "ingestion/"
   acl    = "private"
+
+  depends_on = [ module.objects_processing_bucket ]
 }
 
 resource "aws_s3_object" "creating_processed_key" {
   bucket = module.objects_processing_bucket.bucket_id
   key    = "processed/"
   acl    = "private"
+
+  depends_on = [ module.objects_processing_bucket ]
 }
 
 
@@ -105,7 +109,5 @@ resource "aws_s3_bucket_notification" "bucket-event-notifications" {
     filter_prefix       = "ingestion/"
   }
 
-  depends_on = [
-    aws_lambda_permission.lambda_process_s3_objects
-  ]
+  depends_on = [ module.objects_processing_bucket, aws_lambda_permission.lambda_process_s3_objects ]
 }
