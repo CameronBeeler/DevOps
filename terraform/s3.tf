@@ -75,6 +75,8 @@ module "objects_processing_bucket" {
   sse_algorithm                 = var.s3_sse_algorithm
   allow_ssl_requests_only       = true
   force_destroy                 = true  # Ensure all objects are deleted before bucket is destroyed
+  kms_master_key_arn            = aws_kms_key.s3_processing_bucket_key.arn
+  bucket_key_enabled            = true
 
 
   context = module.this.context
