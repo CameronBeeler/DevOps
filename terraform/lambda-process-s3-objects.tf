@@ -124,7 +124,7 @@ data "aws_iam_policy_document" "lambda_execution_policy_document" {
 
 # make lambda name
 resource "aws_iam_policy" "lambda_execution_policy" {
-  name        = lambda_process_objects_execution_policy
+  name        = "lambda_process_objects_execution_policy"
   description = "provide broad access to lambda in anticipation of is future needs"
   policy      = data.aws_iam_policy_document.lambda_execution_policy_document
 
