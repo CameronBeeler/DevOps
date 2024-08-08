@@ -23,7 +23,7 @@ module "S3_trigger_lambda_process_objects" {
 
   custom_iam_policy_arns = [
     "arn:aws:iam::${local.aws_account_id}:policy/lambda_kms_decrypt",
-    "arn:aws:iam::${local.aws_account_id}:policy/lambda_execution_policy_document"
+    "arn:aws:iam::${local.aws_account_id}:policy/lambda_process_objects_execution_policy"
   ]
 
   layers = []
@@ -35,6 +35,11 @@ module "S3_trigger_lambda_process_objects" {
   }
 
   context = module.this.context
+
+  depends_on = [ 
+    data.archive_file.lambda_zip,
+    aws_iam_policy.lambda_execution_policy
+  ]
 
 }
 
