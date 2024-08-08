@@ -73,8 +73,9 @@ module "objects_processing_bucket" {
   restrict_public_buckets       = var.s3_restrict_public_buckets
   s3_object_ownership           = var.s3_bucket_owner_enforced
   sse_algorithm                 = var.s3_sse_algorithm
-  force_destroy                 = false
   allow_ssl_requests_only       = true
+  force_destroy                 = true  # Ensure all objects are deleted before bucket is destroyed
+
 
   context = module.this.context
 }
