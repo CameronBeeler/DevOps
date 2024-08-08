@@ -1,44 +1,34 @@
-resource "aws_s3_bucket" "cams_s3_bucket" {
-  bucket = "cams-explore-tf-bucket"
+module "s3_explore_bucket" {
+  source                  = "cloudposse/s3-bucket/aws"
+  version                 = "4.2.0"
+  name                    = "cams-explore-tf-bucket"
+  lifecycle_configuration_rules = var.s3_lifecycle_configuration_rules
+  versioning_enabled            = var.s3_versioning_enabled
+  block_public_acls             = var.s3_block_public_acls
+  block_public_policy           = var.s3_block_public_policy
+  ignore_public_acls            = var.s3_ignore_public_acls
+  restrict_public_buckets       = var.s3_restrict_public_buckets
+  s3_object_ownership           = var.s3_bucket_owner_enforced
+  sse_algorithm                 = var.s3_sse_algorithm
+  allow_ssl_requests_only       = true
+  force_destroy                 = true  # Ensure all objects are deleted before bucket is destroyed
+  kms_master_key_arn            = aws_kms_key.s3_explore_bucket_key.arn
+  bucket_key_enabled            = true
 
+  context = module.this.context
+  depends_on = [aws_kms_key.s3_bucket_key ]
 }
-resource "aws_s3_bucket_server_side_encryption_configuration" "s3_bucket_kms_encryption" {
-  bucket = aws_s3_bucket.cams_s3_bucket.id
 
-  rule {
-    apply_server_side_encryption_by_default {
-      kms_master_key_id = aws_kms_key.s3_bucket_key.arn
-      sse_algorithm     = "aws:kms"
-    }
-    bucket_key_enabled = true
-  }
-  depends_on = [aws_kms_key.s3_bucket_key, aws_s3_bucket.cams_s3_bucket]
-}
-
-# module "camerons_tf_explore_bucket" {
-#   source              = "cloudposse/s3-bucket/aws"
-#   version             = "4.2.0"
-#   name                = "cams-cloudpossse-explore-tf-bucket"
-#   versioning_enabled  = false
-#   s3_object_ownership = "BucketOwnerEnforced"
-
-#   source_policy_documents = [
-#     # Allow replication from device state input bucket
-#     data.aws_iam_policy_document.cams_tf_explore_s3_bucket_policy.json
-#   ]
-
-#   context = module.this.context
-# }
 
 data "aws_iam_policy_document" "cams_tf_explore_s3_bucket_policy" {
   // Enforce SSL Connection
   statement {
-    sid     = "AllowSSLRequestsOnly"
+    sid     = "AllowSSLRequestsOnlyExploreBucket"
     effect  = "Deny"
     actions = ["s3:*"]
     resources = [
-      "${aws_s3_bucket.cams_s3_bucket.arn}/*",
-      aws_s3_bucket.cams_s3_bucket.arn
+      "${module.s3_explore_bucket.bucket_arn}/*",
+      module.s3_explore_bucket.bucket_arn
     ]
     principals {
       type        = "*"
@@ -53,8 +43,8 @@ data "aws_iam_policy_document" "cams_tf_explore_s3_bucket_policy" {
 
 }
 
-resource "aws_s3_bucket_policy" "attach_s3_bucket_policy" {
-  bucket = aws_s3_bucket.cams_s3_bucket.id
+resource "aws_s3_bucket_policy" "attach_s3_explore_bucket_policy" {
+  bucket = module.s3_explore_bucket.bucket_id
   policy = data.aws_iam_policy_document.cams_tf_explore_s3_bucket_policy.json
 }
 
@@ -78,7 +68,6 @@ module "objects_processing_bucket" {
   kms_master_key_arn            = aws_kms_key.s3_processing_bucket_key.arn
   bucket_key_enabled            = true
 
-
   context = module.this.context
 }
 
@@ -97,9 +86,36 @@ resource "aws_s3_object" "creating_processed_key" {
 
   depends_on = [ module.objects_processing_bucket ]
 }
+data "aws_iam_policy_document" "objects_processing_bucket_policy_document" {
+  // Enforce SSL Connection
+  statement {
+    sid     = "AllowSSLRequestsOnlyProcessingBucket"
+    effect  = "Deny"
+    actions = ["s3:*"]
+    resources = [
+      "${module.objects_processing_bucket.bucket_arn}/*",
+      module.objects_processing_bucket.bucket_arn
+    ]
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+
+}
+
+resource "aws_s3_bucket_policy" "attach_s3_processing_bucket_policy" {
+  bucket = module.objects_processing_bucket.bucket_id
+  policy = data.aws_iam_policy_document.objects_processing_bucket_policy_document.json
+}
 
 
-resource "aws_s3_bucket_notification" "bucket-event-notifications" {
+resource "aws_s3_bucket_notification" "processing-bucket-event-notifications" {
   bucket = module.objects_processing_bucket.bucket_id
 
   lambda_function {
