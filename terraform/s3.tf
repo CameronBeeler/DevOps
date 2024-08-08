@@ -16,7 +16,7 @@ module "s3_explore_bucket" {
   bucket_key_enabled            = true
 
   context = module.this.context
-  depends_on = [aws_kms_key.s3_bucket_key ]
+  depends_on = [aws_kms_key.s3_explore_bucket_key ]
 }
 
 
