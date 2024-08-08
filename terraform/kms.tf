@@ -7,7 +7,7 @@ resource "aws_kms_key" "s3_bucket_key" {
 
 }
 
-resource "aws_iam_policy_document" "kms_s3_bucket_policy_document" {
+data "aws_iam_policy_document" "kms_s3_bucket_policy_document" {
   statement {
     sid    = "AllowS3BucketKeyUsage"
     effect = "Allow"
