@@ -19,7 +19,11 @@ resource "aws_kms_key" "s3_explore_bucket_key" {
       Name = module.kms_key_for_s3_explore_bucket_label.id
     }
   )
+}
 
+resource "aws_kms_alias" "alias_s3_explore_bucket" {
+  name          = "alias/s3-explore"
+  target_key_id = aws_kms_key.s3_explore_bucket_key.id
 }
 
 data "aws_iam_policy_document" "kms_s3_explore_bucket_policy_document" {
@@ -95,10 +99,15 @@ resource "aws_kms_key" "s3_processing_bucket_key" {
   tags = merge(
     module.this.tags,
     {
-      Name = module.kms_key_for_s3_explore_bucket_label.id
+      Name = module.kms_key_for_s3_processing_bucket_label.id
     }
   )
 
+}
+
+resource "aws_kms_alias" "alias_s3_processing_objects" {
+  name          = "alias/s3-processing"
+  target_key_id = aws_kms_key.s3_processing_bucket_key.id
 }
 
 data "aws_iam_policy_document" "kms_s3_processing_bucket_policy_document" {
