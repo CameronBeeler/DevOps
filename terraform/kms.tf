@@ -52,7 +52,7 @@ data "aws_iam_policy_document" "kms_s3_bucket_policy_document" {
     principals {
       type        = "AWS"
       identifiers = [
-        "arn:aws:iam::${local.aws_account_id}:user/*"
+        "arn:aws:iam::${local.aws_account_id}:root"
       ]
     }
     actions = [
@@ -127,7 +127,7 @@ data "aws_iam_policy_document" "kms_lambda_encrypted_env_vars_document" {
     principals {
       type        = "AWS"
       identifiers = [
-        "arn:aws:iam::${local.aws_account_id}:user/*"
+        "arn:aws:iam::${local.aws_account_id}:root"
       ]
     }
     actions = [
