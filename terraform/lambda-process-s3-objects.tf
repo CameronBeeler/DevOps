@@ -13,8 +13,8 @@ module "S3_trigger_lambda_process_objects" {
   name                               = "lambda_process_s3_objects"
   description                        = "Lambda function to process objects in the S3 bucket"
   filename                           = "${path.module}/lambda-process-s3-objects.zip"
-  function_name                      = "lambda_process_s3_objects"
-  handler                            = "lambda_process_s3_objects.lambda_handler"
+  function_name                      = "lambda-process-s3-objects"
+  handler                            = "lambda-process-s3-objects.lambda_handler"
   runtime                            = "python3.10"
   tracing_config_mode                = "Active"
   timeout                            = 30
