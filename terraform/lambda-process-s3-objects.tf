@@ -1,8 +1,8 @@
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_file = "${path.module}/src/lambda-process-s3-objects/lambda-process-s3-objects.py"
-  output_path = "${path.module}/src/lambda-process-s3-objects/lambda-process-s3-objects.zip"
+  source_file = "${path.module}/src/lambda-process-s3-objects/*"
+  output_path = "${path.module}/lambda-process-s3-objects.zip"
 }
 
 module "S3_trigger_lambda_process_objects" {
@@ -126,7 +126,7 @@ data "aws_iam_policy_document" "lambda_execution_policy_document" {
 resource "aws_iam_policy" "lambda_execution_policy" {
   name        = "lambda_process_objects_execution_policy"
   description = "provide broad access to lambda in anticipation of is future needs"
-  policy      = data.aws_iam_policy_document.lambda_execution_policy_document
+  policy      = data.aws_iam_policy_document.lambda_execution_policy_document.json
 
   depends_on = [ module.objects_processing_bucket ]
 }
