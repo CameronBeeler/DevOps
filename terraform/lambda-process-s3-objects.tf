@@ -124,7 +124,7 @@ data "aws_iam_policy_document" "lambda_execution_policy_document" {
 
 # make lambda name
 resource "aws_iam_policy" "lambda_execution_policy" {
-  name        = module.S3_trigger_lambda_process_objects.id
+  name        = lambda_process_objects_execution_policy
   description = "provide broad access to lambda in anticipation of is future needs"
   policy      = data.aws_iam_policy_document.lambda_execution_policy_document
 
@@ -134,7 +134,7 @@ resource "aws_iam_policy" "lambda_execution_policy" {
 resource "aws_lambda_permission" "lambda_process_s3_objects" {
   statement_id  = "AllowExecutionFromS3Bucket"
   action        = "lambda:InvokeFunction"
-  function_name = module.lambda_process_s3_objects.function_name
+  function_name = module.S3_trigger_lambda_process_objects.function_name
   principal     = "s3.amazonaws.com"
   source_arn    = module.objects_processing_bucket.bucket_arn
 
