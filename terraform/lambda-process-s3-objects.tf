@@ -34,7 +34,6 @@ module "S3_trigger_lambda_process_objects" {
 
   context = module.this.context
 
-  depends_on = [ aws_iam_policy.lambda_execution_policy ]
 }
 
 data "aws_iam_policy_document" "lambda_execution_policy_document" {
