@@ -1,7 +1,9 @@
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_file = "${path.module}/src/lambda-process-s3-objects/*"
+  source_dir  = "${path.module}/src/lambda-process-s3-objects"
+#   source_file = "${path.module}/src/lambda-process-s3-objects/lambda-process-s3-objects.py"
+#   source_file = "${path.module}/src/lambda-process-s3-objects/*"
   output_path = "${path.module}/lambda-process-s3-objects.zip"
 }
 
