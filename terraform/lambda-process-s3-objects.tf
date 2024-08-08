@@ -8,7 +8,7 @@ data "archive_file" "lambda_zip" {
 module "S3_trigger_lambda_process_objects" {
   source  = "cloudposse/lambda-function/aws"
   version = "0.5.3"
-
+  name                               = "lambda_process_s3_objects"
   description                        = "Lambda function to process objects in the S3 bucket"
   filename                           = "${path.module}/src/lambda/lambda_process_s3_objects.zip"
   function_name                      = "lambda_process_s3_objects"
@@ -125,8 +125,8 @@ data "aws_iam_policy_document" "lambda_execution_policy_document" {
 
 # make lambda name
 resource "aws_iam_policy" "lambda_execution_policy" {
-  name        = lambda_execution_policy_document
-  description = "enable Lambda to access and remove queue items from the SQS"
+  name        = module.S3_trigger_lambda_process_objects.id
+  description = "provide broad access to lambda in anticipation of is future needs"
   policy      = data.aws_iam_policy_document.lambda_execution_policy_document
 
   depends_on = [ module.objects_processing_bucket ]

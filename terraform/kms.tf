@@ -11,12 +11,12 @@ resource "aws_kms_key" "s3_bucket_key" {
   deletion_window_in_days = 7
   enable_key_rotation     = true
 
-  policy = aws_iam_policy_document.kms_s3_bucket_policy_document.json
+  policy = data.aws_iam_policy_document.kms_s3_bucket_policy_document.json
 
   tags = merge(
     module.this.tags,
     {
-      Name = module.ods_kms_key_for_s3_label.id
+      Name = module.kms_key_for_s3_bucket_label.id
     }
   )
 
@@ -76,17 +76,25 @@ data "aws_iam_policy_document" "kms_s3_bucket_policy_document" {
   }
 }
 
+module "kms_key_for_encrypting_lambda_env_vars_label" {
+  source  = "cloudposse/label/null"
+  version = "0.25.0" # requires Terraform >= 0.13.0
+
+  name    = "kms-key-lambda-env-vars"
+  context = module.this.context
+}
+
 resource "aws_kms_key" "lambda_env_var_key" {
   description             = "KMS key for encrypting lambda environment variables"
   deletion_window_in_days = 7
   enable_key_rotation     = true
 
-  policy = aws_iam_policy_document.kms_lambda_encrypted_env_vars_document.json
+  policy = data.aws_iam_policy_document.kms_lambda_encrypted_env_vars_document.json
 
   tags = merge(
     module.this.tags,
     {
-      Name = module.ods_kmskey_for_macie_label.id
+      Name = module.kms_key_for_encrypting_lambda_env_vars_label.id
     }
   )
 
