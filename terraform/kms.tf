@@ -188,6 +188,11 @@ resource "aws_kms_key" "lambda_env_var_key" {
 
 }
 
+resource "aws_kms_alias" "alias_s3_processing_objects" {
+  name          = "alias/lambda-envs"
+  target_key_id = aws_kms_key.lambda_env_var_key.id
+}
+
 data "aws_iam_policy_document" "kms_lambda_encrypted_env_vars_document" {
   statement {
     sid    = "AllowLambdaAccessToEncryptedEnvVars"
