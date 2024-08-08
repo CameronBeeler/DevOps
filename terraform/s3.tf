@@ -69,6 +69,8 @@ module "objects_processing_bucket" {
   bucket_key_enabled            = true
 
   context = module.this.context
+
+  depends_on = [aws_kms_key.s3_processing_bucket_key ]
 }
 
 resource "aws_s3_object" "creating_ingestion_key" {
