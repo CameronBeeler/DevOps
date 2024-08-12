@@ -1,9 +1,14 @@
 import boto3
+import sys
+import json
 import logging
+from util.logger import BasicLogger
+from util.s3_util import write_s3
 
 # Initialize logger
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+global logger
+# this will always log at the debug level
+logger = BasicLogger(log_level=int(20)).get_logger()
 
 s3_client = boto3.client('s3')
 
@@ -35,3 +40,49 @@ def lambda_handler(event, context):
         'statusCode': 200,
         'body': f"Object {ingested_key} moved to {processed_key}."
     }
+    
+
+#    ========================================
+
+def run():
+    """
+    from awsglue.utils import getResolvedOptions
+
+    Runner function for all the functionalities in the script
+    This is a manually executed glue job to validate connectivity between systems by created a sample data file in the
+    destination S3 bucket
+    All cross account permissions are stored in this IAM policy: resource_full_access_cns_bucket via Terraform
+    TO RUN: update the s3_file_path_cross_account job param to the desired location
+    """
+
+""" -> tweak this code to work for the lambda function.  
+    try:
+        args = getResolvedOptions(
+            sys.argv,
+            ["s3_file_path_cross_account"],
+        )
+
+        s3_path_cross_account = args["s3_file_path_cross_account"]
+
+        if not s3_path_cross_account:
+            raise ValueError("Missing job params, s3_path_cross_account is required")
+
+        sample_json = json.dumps(
+            {"test": "Sample JSON sent from ODS for Connectivity Testing"}
+        )
+
+        # write cross account
+        write_s3(
+            s3_path_cross_account,
+            "ODS_Test_Connection_File.csv",
+            sample_json,
+        )
+
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
+
+if __name__ == "__main__":
+    run()
+"""
